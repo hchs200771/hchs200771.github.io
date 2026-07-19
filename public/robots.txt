@@ -1,5 +1,5 @@
-# 買好網域後,把 Sitemap 網址換成正式網域
+# 買好網域後，把 Sitemap 網址換成正式網域
 User-agent: *
 Allow: /
 
-Sitemap: https://example.com/sitemap-index.xml
+Sitemap: https://hchs200771.github.io/sitemap-index.xml

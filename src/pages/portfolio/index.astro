@@ -10,11 +10,11 @@ const projects = (await getCollection('portfolio')).sort(
 
 <Base
   title="作品集"
-  description="接案與 Side Project 作品展示:網站、工具與 AI Coding 實戰成果。"
+  description="接案與 Side Project 作品展示：網站、工具與 AI Coding 實戰成果。"
 >
   <div class="page-head">
     <h1>作品集</h1>
-    <p>已上線的作品可以直接點進去玩;開發中的作品先以截圖呈現。</p>
+    <p>已上線的作品可以直接點進去玩；開發中的作品先以截圖呈現。</p>
   </div>
   <div class="gallery">
     {projects.map((p) => <PortfolioCard project={p} />)}
