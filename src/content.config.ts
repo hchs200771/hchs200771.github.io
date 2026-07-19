@@ -19,6 +19,8 @@ const portfolio = defineCollection({
     description: z.string(),
     // 已上線的作品填網址;還沒部署的留空,只放截圖
     url: z.string().url().optional(),
+    // GitHub repo 連結
+    repo: z.string().url().optional(),
     // 放在 public/images/ 下的截圖路徑,例如 /images/project-a.svg
     cover: z.string(),
     tags: z.array(z.string()).default([]),
