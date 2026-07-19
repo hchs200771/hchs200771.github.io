@@ -1,8 +1,9 @@
 ---
 title: 台股盤後自動分析報告
 description: 收盤後自動抓資料、分析強弱族群，一封盤後報告寄到你信箱。
+url: https://hchs200771.github.io/100-up-and-down-stocks/
 repo: https://github.com/hchs200771/100-up-and-down-stocks
-cover: /images/up-down-stocks.svg
+cover: /images/up-down-stocks.jpg
 tags: [投資工具, AI 分析, 自動化]
 order: 3
 ---
