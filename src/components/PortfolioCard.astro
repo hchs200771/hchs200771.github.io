@@ -1,0 +1,43 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  project: CollectionEntry<'portfolio'>;
+}
+
+const { project } = Astro.props;
+const { title, description, url, cover, tags } = project.data;
+---
+
+<article class="card">
+  {
+    url ? (
+      <a class="card-link" href={url} target="_blank" rel="noopener">
+        <img src={cover} alt={`${title} 截圖`} loading="lazy" />
+        <div class="card-body">
+          <h3>{title} ↗</h3>
+          <p>{description}</p>
+          <div class="tag-row">
+            {tags.map((t) => (
+              <span class="tag">{t}</span>
+            ))}
+          </div>
+        </div>
+      </a>
+    ) : (
+      <div class="card-link">
+        <img src={cover} alt={`${title} 截圖`} loading="lazy" />
+        <div class="card-body">
+          <h3>{title}</h3>
+          <p>{description}</p>
+          <div class="tag-row">
+            {tags.map((t) => (
+              <span class="tag">{t}</span>
+            ))}
+            <span class="badge-offline">開發中・尚未上線</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+</article>

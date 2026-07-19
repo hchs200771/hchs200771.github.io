@@ -1,0 +1,34 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+---
+
+<Base
+  title="部落格"
+  description="AI Coding 與 Vibe Coding 實戰教學:開發工具、工作流程與接案心得分享。"
+>
+  <div class="page-head">
+    <h1>部落格</h1>
+    <p>分享 AI Coding 的工具與心得,讓你在 Vibe Coding 的路上更順。</p>
+  </div>
+  <ul class="post-list">
+    {
+      posts.map((post) => (
+        <li class="post-item">
+          <a href={`/blog/${post.id}/`}>
+            <p class="meta">
+              {post.data.pubDate.toISOString().slice(0, 10)}
+              {post.data.tags.length > 0 && ` · ${post.data.tags.join(' / ')}`}
+            </p>
+            <h3>{post.data.title}</h3>
+            <p>{post.data.description}</p>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</Base>
