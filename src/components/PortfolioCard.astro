@@ -6,7 +6,7 @@ interface Props {
 }
 
 const { project } = Astro.props;
-const { title, description, url, cover, tags } = project.data;
+const { title, description, url, cover, tags, client } = project.data;
 ---
 
 <article class="card">
@@ -17,7 +17,8 @@ const { title, description, url, cover, tags } = project.data;
       <p>{description}</p>
       <div class="tag-row">
         {tags.map((t) => <span class="tag">{t}</span>)}
-        {!url && <span class="badge-offline">開發中・尚未上線</span>}
+        {client && <span class="badge-offline">私人接案</span>}
+        {!url && !client && <span class="badge-offline">開發中・尚未上線</span>}
       </div>
     </div>
   </a>

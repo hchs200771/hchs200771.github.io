@@ -21,6 +21,8 @@ const portfolio = defineCollection({
     url: z.string().url().optional(),
     // GitHub repo 連結
     repo: z.string().url().optional(),
+    // 私人接案:不放 Demo 與 repo,顯示「私人接案」標示
+    client: z.boolean().default(false),
     // 放在 public/images/ 下的截圖路徑,例如 /images/project-a.svg
     cover: z.string(),
     tags: z.array(z.string()).default([]),

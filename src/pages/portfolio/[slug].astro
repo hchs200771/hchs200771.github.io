@@ -11,7 +11,7 @@ export async function getStaticPaths() {
 }
 
 const { project } = Astro.props;
-const { title, description, url, repo, cover, tags } = project.data;
+const { title, description, url, repo, cover, tags, client } = project.data;
 const { Content } = await render(project);
 ---
 
@@ -35,7 +35,8 @@ const { Content } = await render(project);
           </a>
         )
       }
-      {!url && <span class="badge-offline">開發中・尚未上線</span>}
+      {client && <span class="badge-offline">私人接案・不對外開放</span>}
+      {!url && !client && <span class="badge-offline">開發中・尚未上線</span>}
     </div>
 
     <img class="project-cover" src={cover} alt={`${title} 截圖`} />
