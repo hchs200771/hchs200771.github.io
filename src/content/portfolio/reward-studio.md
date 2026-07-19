@@ -24,4 +24,4 @@ order: 4
 
 ## 幕後技術
 
-React + TypeScript + Vite;UI 用 shadcn/ui + Tailwind CSS；帳號與後端服務用 Supabase。
+React + TypeScript + Vite；UI 用 shadcn/ui + Tailwind CSS；帳號與後端服務用 Supabase。
