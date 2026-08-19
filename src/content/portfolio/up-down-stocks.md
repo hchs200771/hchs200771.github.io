@@ -5,7 +5,7 @@ url: https://hchs200771.github.io/100-up-and-down-stocks/
 repo: https://github.com/hchs200771/100-up-and-down-stocks
 cover: /images/up-down-stocks.jpg
 tags: [投資工具, AI 分析, 資料視覺化, 自動化]
-order: 3
+order: 1
 ---
 
 ## 這個專案在解決什麼

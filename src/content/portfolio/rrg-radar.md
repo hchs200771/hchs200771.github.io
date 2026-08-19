@@ -5,7 +5,7 @@ url: https://hchs200771.github.io/rrg-radar/
 repo: https://github.com/hchs200771/rrg-radar
 cover: /images/rrg-radar.jpg
 tags: [投資工具, 資料視覺化, 自動化]
-order: 1
+order: 2
 ---
 
 ## 這個專案在解決什麼
