@@ -1,0 +1,226 @@
+---
+/**
+ * Prompt cache 成本示意：每一輪把「固定前綴 + 全部對話」整包送出，
+ * 命中的部分收 0.1 倍、新寫入的部分收 1.25 倍、output 收 5 倍。
+ * 可以切換「中途離開超過快取時效」與「每輪多一段寒暄」，看總成本怎麼變。
+ * 數字是示意用的相對單位（1 = 一個 input token 的原價），不是實際帳單。
+ */
+---
+
+<figure class="demo cache-demo">
+  <div class="demo-head">
+    <div>
+      <p class="demo-kicker">INTERACTIVE · 相對成本示意</p>
+      <p class="demo-title">同樣 10 輪對話，成本差在哪？</p>
+    </div>
+  </div>
+
+  <div class="demo-controls cc-toggles">
+    <label><input type="checkbox" data-pause /> 第 6 輪前離開超過快取時效</label>
+    <label><input type="checkbox" data-chatty /> 每輪多 300 token 寒暄與重述</label>
+  </div>
+
+  <div class="cc-chart" data-chart aria-hidden="true"></div>
+
+  <div class="cc-legend">
+    <span><i class="cc-read"></i>快取命中（0.1×）</span>
+    <span><i class="cc-write"></i>新寫入快取（1.25×）</span>
+    <span><i class="cc-out"></i>Output（5×）</span>
+  </div>
+
+  <p class="cc-total">
+    10 輪總成本：<strong data-total></strong>
+    <span class="cc-delta" data-delta></span>
+  </p>
+  <figcaption class="demo-caption">
+    假設固定前綴（system prompt + tools）2 萬 token、每輪你輸入 500 token、模型回 800 token。
+    單位是「一個 input token 的原價」，只看相對大小。
+  </figcaption>
+</figure>
+
+<style is:global>
+  .cc-toggles {
+    margin-bottom: 1rem;
+  }
+
+  .cc-toggles input {
+    accent-color: var(--accent);
+  }
+
+  .cc-chart {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    align-items: end;
+    gap: 6px;
+    height: 180px;
+    padding-bottom: 1.3rem;
+    position: relative;
+  }
+
+  .cc-col {
+    display: flex;
+    flex-direction: column-reverse;
+    height: 100%;
+    position: relative;
+  }
+
+  .cc-col::after {
+    content: attr(data-turn);
+    position: absolute;
+    bottom: -1.3rem;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  .cc-seg {
+    width: 100%;
+    transition: height 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .cc-seg:last-child {
+    border-radius: 4px 4px 0 0;
+  }
+
+  .cc-read {
+    background: #fcd34d;
+  }
+
+  .cc-write {
+    background: #f97316;
+  }
+
+  .cc-out {
+    background: #7c3aed;
+  }
+
+  .cc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.6rem;
+  }
+
+  .cc-legend i {
+    display: inline-block;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 2px;
+    margin-right: 0.3rem;
+    vertical-align: -0.05rem;
+  }
+
+  .prose .demo .cc-total {
+    margin-top: 0.8rem;
+    font-size: 0.95rem;
+  }
+
+  .cc-total strong {
+    font-family: var(--font-mono);
+    color: var(--accent-dim);
+  }
+
+  .cc-delta {
+    font-size: 0.85rem;
+    color: #b91c1c;
+    margin-left: 0.4rem;
+  }
+</style>
+
+<script>
+  const PREFIX = 20000;
+  const USER = 500;
+  const OUTPUT = 800;
+  const CHATTY = 300;
+  const TURNS = 10;
+  const PAUSE_BEFORE = 6;
+  const PRICE = { read: 0.1, write: 1.25, out: 5 };
+
+  interface Turn {
+    read: number;
+    write: number;
+    out: number;
+  }
+
+  function simulate(pause: boolean, chatty: boolean): Turn[] {
+    const out = OUTPUT + (chatty ? CHATTY : 0);
+    const turns: Turn[] = [];
+    let history = 0; // 之前各輪的 user + output，已經在快取裡
+    for (let t = 1; t <= TURNS; t++) {
+      const fresh = USER + (t > 1 ? out : 0); // 上一輪的 output 這輪才變成 input
+      const prevHistory = t > 1 ? history - out : 0;
+      let cached = t === 1 ? 0 : PREFIX + prevHistory;
+      let written = (t === 1 ? PREFIX : 0) + fresh;
+      if (pause && t === PAUSE_BEFORE) {
+        // 快取過期：整段 context 重新寫入
+        written += cached;
+        cached = 0;
+      }
+      turns.push({ read: cached * PRICE.read, write: written * PRICE.write, out: out * PRICE.out });
+      history += USER + out;
+    }
+    return turns;
+  }
+
+  const sum = (ts: Turn[]) => ts.reduce((s, t) => s + t.read + t.write + t.out, 0);
+  const fmt = (n: number) => `${(n / 10000).toFixed(1)} 萬單位`;
+
+  function init(root: HTMLElement) {
+    if (root.dataset.bound) return;
+    root.dataset.bound = '1';
+
+    const chart = root.querySelector<HTMLElement>('[data-chart]')!;
+    const pause = root.querySelector<HTMLInputElement>('[data-pause]')!;
+    const chatty = root.querySelector<HTMLInputElement>('[data-chatty]')!;
+    const totalEl = root.querySelector<HTMLElement>('[data-total]')!;
+    const deltaEl = root.querySelector<HTMLElement>('[data-delta]')!;
+
+    const cols = Array.from({ length: TURNS }, (_, i) => {
+      const col = document.createElement('div');
+      col.className = 'cc-col';
+      col.dataset.turn = String(i + 1);
+      const segs = (['read', 'write', 'out'] as const).map((k) => {
+        const s = document.createElement('div');
+        s.className = `cc-seg cc-${k}`;
+        s.style.height = '0%';
+        col.append(s);
+        return s;
+      });
+      chart.append(col);
+      return segs;
+    });
+
+    const baseline = sum(simulate(false, false));
+    // 縱軸固定用「最壞情況」的最高一輪，切換選項時柱子高度才能直接比較
+    const worst = simulate(true, true);
+    const max = Math.max(...worst.map((t) => t.read + t.write + t.out));
+
+    const render = () => {
+      const turns = simulate(pause.checked, chatty.checked);
+      turns.forEach((t, i) => {
+        const [r, w, o] = cols[i];
+        r.style.height = `${(t.read / max) * 100}%`;
+        w.style.height = `${(t.write / max) * 100}%`;
+        o.style.height = `${(t.out / max) * 100}%`;
+      });
+      const total = sum(turns);
+      totalEl.textContent = fmt(total);
+      const pct = Math.round((total / baseline - 1) * 100);
+      deltaEl.textContent = pct > 0 ? `比基準多 ${pct}%` : '';
+    };
+
+    pause.addEventListener('change', render);
+    chatty.addEventListener('change', render);
+    // 稍微延後再畫，柱子會從 0 長出來；不用 requestAnimationFrame，背景分頁才不會停在空白
+    setTimeout(render, 80);
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('.cache-demo').forEach(init);
+  });
+</script>

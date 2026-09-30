@@ -1,0 +1,387 @@
+---
+/**
+ * 盤後報告三層分工的互動示意：Controller 切族群 → Worker 平行研究 → Finalizer 收斂。
+ * 可以拉「同時幾個 worker」看總耗時怎麼變。時間是示意用的模擬值，不是實測數據。
+ */
+const groups = [
+  '晶圓代工', '光通訊/CPO矽光子', 'AI伺服器/系統組裝', 'AI伺服器散熱/機構件',
+  'ABF/BT載板', 'CCL/銅箔基板', '低軌衛星/HDI高階PCB', 'DRAM/NAND記憶體模組與控制IC',
+  '記憶體封測', '矽晶圓/半導體基板', 'ASIC/IP矽智財', '功率元件/電源管理IC',
+  '半導體設備/測試介面', '被動元件', '連接器/線束', '一般網通/交換器',
+  '工業自動化/機器人', '電源供應器/UPS', '生技新藥/醫材', '特用化學/電子材料',
+  '塑化/化工', '鋼鐵/金屬材料', '航太精密零組件', '其他弱勢',
+];
+---
+
+<figure class="demo pipeline-demo" data-groups={JSON.stringify(groups)}>
+  <div class="demo-head">
+    <div>
+      <p class="demo-kicker">INTERACTIVE · 模擬示意</p>
+      <p class="demo-title">三層分工：切題 → 平行研究 → 收斂</p>
+    </div>
+    <div class="demo-controls">
+      <label>
+        同時 <strong data-conc-label>10</strong> 個 worker
+        <input type="range" min="1" max="12" value="10" data-conc />
+      </label>
+      <button type="button" class="btn primary" data-run>▶ 開始</button>
+    </div>
+  </div>
+
+  <div class="pl-stages">
+    <div class="pl-stage" data-stage="controller">
+      <span class="pl-badge">1</span>
+      <span class="pl-name">Controller</span>
+      <span class="pl-model">大模型 × 1</span>
+    </div>
+    <div class="pl-stage" data-stage="workers">
+      <span class="pl-badge">2</span>
+      <span class="pl-name">Workers</span>
+      <span class="pl-model">小模型 × <span data-conc-label>10</span></span>
+    </div>
+    <div class="pl-stage" data-stage="finalizer">
+      <span class="pl-badge">3</span>
+      <span class="pl-name">Finalizer</span>
+      <span class="pl-model">大模型 × 1</span>
+    </div>
+  </div>
+
+  <div class="pl-stocks" data-stocks aria-hidden="true"></div>
+  <ul class="pl-groups" data-group-list></ul>
+
+  <div class="pl-footer">
+    <span data-status>按「開始」看 200 檔股票怎麼被拆開處理。</span>
+    <span class="pl-clock">模擬耗時 <strong data-clock>0:00</strong></span>
+  </div>
+  <figcaption class="demo-caption">
+    研究階段的瓶頸是等 API，不是本機 CPU，所以併發數拉高，總時間幾乎等比例縮短。
+    拉到 1 再跑一次比較看看。
+  </figcaption>
+</figure>
+
+<style is:global>
+  .pl-stages {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .pl-stage {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.5rem;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    transition:
+      border-color 0.3s,
+      background 0.3s,
+      box-shadow 0.3s;
+  }
+
+  .pl-stage.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+  }
+
+  .pl-stage.done .pl-badge {
+    background: #16a34a;
+  }
+
+  .pl-badge {
+    grid-row: span 2;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: background 0.3s;
+  }
+
+  .pl-name {
+    font-weight: 700;
+    font-size: 0.92rem;
+    line-height: 1.3;
+  }
+
+  .pl-model {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
+
+  .pl-stocks {
+    display: grid;
+    grid-template-columns: repeat(40, 1fr);
+    gap: 3px;
+    margin-bottom: 1rem;
+  }
+
+  .pl-dot {
+    aspect-ratio: 1;
+    border-radius: 2px;
+    transition:
+      opacity 0.4s,
+      transform 0.4s;
+  }
+
+  .pl-dot.up {
+    background: #ef4444;
+  }
+
+  .pl-dot.down {
+    background: #16a34a;
+  }
+
+  .pl-stocks.sorted .pl-dot {
+    opacity: 0.18;
+    transform: scale(0.6);
+  }
+
+  .pl-groups {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+    gap: 0.45rem;
+    min-height: 2rem;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .pl-group {
+    position: relative;
+    overflow: hidden;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text-muted);
+    animation: pl-pop 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    transition:
+      border-color 0.25s,
+      color 0.25s,
+      background 0.25s;
+  }
+
+  .pl-group .bar {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: 0;
+    background: var(--accent);
+  }
+
+  .pl-group.running {
+    border-color: var(--accent);
+    color: var(--text);
+    background: var(--accent-soft);
+  }
+
+  .pl-group.done {
+    border-color: #86efac;
+    color: #166534;
+    background: #f0fdf4;
+  }
+
+  .pl-group.done .bar {
+    display: none;
+  }
+
+  .pl-group.done::after {
+    content: '✓';
+    position: absolute;
+    right: 0.45rem;
+    top: 0.35rem;
+    font-weight: 700;
+  }
+
+  .pl-group.merged {
+    opacity: 0.35;
+    transform: scale(0.96);
+    transition:
+      opacity 0.5s,
+      transform 0.5s;
+  }
+
+  @keyframes pl-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+  }
+
+  .pl-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    font-size: 0.88rem;
+  }
+
+  .pl-clock {
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+  }
+
+  .pl-clock strong {
+    color: var(--accent-dim);
+  }
+
+  @media (max-width: 520px) {
+    .pl-stages {
+      grid-template-columns: 1fr;
+    }
+
+    .pl-stocks {
+      grid-template-columns: repeat(25, 1fr);
+    }
+  }
+</style>
+
+<script>
+  // 模擬時間：1 個模擬秒 = SPEED 毫秒實際時間
+  const SPEED = 6;
+  const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, reduceMotion() ? 0 : ms));
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+
+  // 固定亂數種子：每次跑同一組任務長度，改併發數時才比較得出差異
+  function durations(n: number) {
+    let seed = 42;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    return Array.from({ length: n }, () => 60 + Math.round(rand() * 120));
+  }
+
+  function init(root: HTMLElement) {
+    if (root.dataset.bound) return;
+    root.dataset.bound = '1';
+
+    const groups: string[] = JSON.parse(root.dataset.groups ?? '[]');
+    const $ = <T extends Element>(sel: string) => root.querySelector<T>(sel)!;
+    const stocksEl = $<HTMLElement>('[data-stocks]');
+    const listEl = $<HTMLUListElement>('[data-group-list]');
+    const statusEl = $<HTMLElement>('[data-status]');
+    const clockEl = $<HTMLElement>('[data-clock]');
+    const runBtn = $<HTMLButtonElement>('[data-run]');
+    const conc = $<HTMLInputElement>('[data-conc]');
+    const stage = (name: string) => $<HTMLElement>(`[data-stage="${name}"]`);
+
+    for (let i = 0; i < 200; i++) {
+      const dot = document.createElement('span');
+      dot.className = `pl-dot ${i < 100 ? 'up' : 'down'}`;
+      stocksEl.append(dot);
+    }
+
+    conc.addEventListener('input', () => {
+      root.querySelectorAll('[data-conc-label]').forEach((el) => (el.textContent = conc.value));
+    });
+
+    let clock = 0;
+    const tick = (s: number) => {
+      clock += s;
+      clockEl.textContent = fmt(clock);
+    };
+
+    runBtn.addEventListener('click', async () => {
+      runBtn.disabled = true;
+      conc.disabled = true;
+      clock = 0;
+      tick(0);
+      listEl.innerHTML = '';
+      stocksEl.classList.remove('sorted');
+      root.querySelectorAll('.pl-stage').forEach((el) => el.classList.remove('active', 'done'));
+
+      // 1. Controller：200 檔 → 族群 task
+      stage('controller').classList.add('active');
+      statusEl.textContent = 'Controller 正在把 200 檔股票歸成族群……';
+      stocksEl.classList.add('sorted');
+      const cards = groups.map((name) => {
+        const li = document.createElement('li');
+        li.className = 'pl-group';
+        li.innerHTML = `<span></span><span class="bar"></span>`;
+        li.firstElementChild!.textContent = name;
+        return li;
+      });
+      for (const card of cards) {
+        listEl.append(card);
+        tick(4);
+        await sleep(45);
+      }
+      stage('controller').classList.replace('active', 'done');
+
+      // 2. Workers：有限併發的 queue
+      const limit = Number(conc.value);
+      stage('workers').classList.add('active');
+      statusEl.textContent = `${limit} 個 worker 平行上網研究，一個族群一個……`;
+      const lens = durations(cards.length);
+      const researchStart = clock;
+      let next = 0;
+      const worker = async () => {
+        for (;;) {
+          const i = next++;
+          if (i >= cards.length) return;
+          const card = cards[i];
+          const bar = card.querySelector<HTMLElement>('.bar')!;
+          card.classList.add('running');
+          bar.animate([{ width: '0%' }, { width: '100%' }], {
+            duration: reduceMotion() ? 0 : lens[i] * SPEED,
+            fill: 'forwards',
+          });
+          await sleep(lens[i] * SPEED);
+          card.classList.replace('running', 'done');
+        }
+      };
+      const t0 = performance.now();
+      const timer = setInterval(() => {
+        clock = researchStart + (performance.now() - t0) / SPEED;
+        tick(0);
+      }, 50);
+      await Promise.all(Array.from({ length: limit }, worker));
+      clearInterval(timer);
+      // 以任務長度精確算出 wall-clock，避免計時器誤差
+      clock = researchStart + simulate(lens, limit);
+      tick(0);
+      stage('workers').classList.replace('active', 'done');
+
+      // 3. Finalizer：收斂成一份報告
+      stage('finalizer').classList.add('active');
+      statusEl.textContent = 'Finalizer 讀取骨架檔，寫總結與長線策略……';
+      cards.forEach((c) => c.classList.add('merged'));
+      for (let i = 0; i < 20; i++) {
+        tick(6);
+        await sleep(40);
+      }
+      stage('finalizer').classList.replace('active', 'done');
+      statusEl.textContent = `完成：${cards.length} 個族群，${limit} 個 worker 平行研究。`;
+      runBtn.textContent = '↻ 再跑一次';
+      runBtn.disabled = false;
+      conc.disabled = false;
+    });
+  }
+
+  /** 以「最早空出來的 worker 接下一件」算出總耗時 */
+  function simulate(lens: number[], limit: number) {
+    const free = Array(limit).fill(0);
+    for (const len of lens) {
+      const i = free.indexOf(Math.min(...free));
+      free[i] += len;
+    }
+    return Math.max(...free);
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('.pipeline-demo').forEach(init);
+  });
+</script>

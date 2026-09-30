@@ -1,0 +1,200 @@
+---
+/**
+ * 「還沒公布的月營收」事實檢查互動示意。
+ * 判斷規則與 100-up-and-down-stocks 的 scripts/check-story-facts.ts 相同：
+ * N 月營收最晚在 (N+1) 月 10 日公布，報告日期早於那天卻寫了 N 月營收數字，整句刪除。
+ */
+const story = [
+  '京元電作為測試代工龍頭，8月營收衝破31億元，年增31.9%，連七月39.91億元年增36.75%的佳績後再創新高。',
+  'AI 晶片測試時間拉長，高階測試機台稼動率維持高檔。',
+  '股價在8月28日拉出長紅，量能同步放大。',
+  '法人預估9月營收將月增7%至33億元。',
+];
+---
+
+<figure class="demo factcheck-demo" data-story={JSON.stringify(story)}>
+  <div class="demo-head">
+    <div>
+      <p class="demo-kicker">INTERACTIVE · 同一套規則</p>
+      <p class="demo-title">拖動報告日期，看哪些句子會被刪掉</p>
+    </div>
+    <div class="demo-controls">
+      <label>
+        報告日期 <strong class="fc-date" data-date-label>2026-08-28</strong>
+        <input type="range" min="0" max="45" value="0" data-date />
+      </label>
+    </div>
+  </div>
+
+  <ol class="fc-story" data-story-list></ol>
+
+  <p class="fc-summary" data-summary></p>
+  <figcaption class="demo-caption">
+    第三句的「8月28日」是日期而不是營收，所以不會被誤刪。規則刻意收窄成「提到營收，而且未公布月份後面緊接金額或增減幅」。
+  </figcaption>
+</figure>
+
+<style is:global>
+  .fc-date {
+    font-family: var(--font-mono);
+    color: var(--accent-dim);
+    display: inline-block;
+    min-width: 6.5rem;
+  }
+
+  .fc-story {
+    list-style: none;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .fc-line {
+    border: 1px solid var(--border);
+    border-left: 4px solid #86efac;
+    border-radius: 8px;
+    padding: 0.55rem 0.8rem;
+    background: var(--bg);
+    font-size: 0.95rem;
+    transition:
+      border-color 0.3s,
+      background 0.3s,
+      opacity 0.3s;
+  }
+
+  .fc-text {
+    transition: color 0.3s;
+  }
+
+  .fc-line.bad {
+    border-left-color: #ef4444;
+    background: #fef2f2;
+  }
+
+  .fc-line.bad .fc-text {
+    color: #b91c1c;
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+  }
+
+  .fc-reason {
+    display: block;
+    font-size: 0.8rem;
+    color: #b91c1c;
+    margin-top: 0.2rem;
+  }
+
+  .fc-line:not(.bad) .fc-reason {
+    display: none;
+  }
+
+  .fc-line.flash {
+    animation: fc-shake 0.35s;
+  }
+
+  @keyframes fc-shake {
+    25% {
+      translate: -4px 0;
+    }
+    75% {
+      translate: 4px 0;
+    }
+  }
+
+  .fc-summary {
+    margin-top: 0.9rem !important;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+</style>
+
+<script>
+  /** N 月營收最晚在 (N+1) 月 10 日公布；取 asOf 之前最近的那個 N 月，跨年也對。 */
+  function revenueMonthPublished(month: number, asOf: Date): boolean {
+    const y = asOf.getFullYear();
+    const m = asOf.getMonth() + 1;
+    const year = month <= m ? y : y - 1;
+    const deadline = new Date(year + (month === 12 ? 1 : 0), month === 12 ? 0 : month, 10);
+    return deadline <= asOf;
+  }
+
+  function checkSentence(sentence: string, asOf: Date): string | null {
+    // 規則 1：直接寫「8月營收」「8月合併營收」
+    for (const h of sentence.matchAll(/(\d{1,2})\s*月(?:份)?\s*(?:合併)?(營收|業績|營業額)/g)) {
+      const month = parseInt(h[1], 10);
+      if (month >= 1 && month <= 12 && !revenueMonthPublished(month, asOf)) {
+        return `${month} 月${h[2]}要到 ${month === 12 ? 1 : month + 1}/10 才公布`;
+      }
+    }
+    // 規則 2：句子提到營收，且未公布月份後 15 字內出現金額或增減幅
+    if (/(營收|業績|營業額)/.test(sentence)) {
+      for (const h of sentence.matchAll(/(\d{1,2})\s*月(?![\d\s]*日)/g)) {
+        const month = parseInt(h[1], 10);
+        if (month < 1 || month > 12 || revenueMonthPublished(month, asOf)) continue;
+        const tail = sentence.slice(h.index! + h[0].length, h.index! + h[0].length + 15);
+        if (/(億元?|萬元|月增|年增|月減|年減|\d+(\.\d+)?%)/.test(tail)) {
+          return `${month} 月的營收數字尚未公布，這句卻給了具體金額或增減幅`;
+        }
+      }
+    }
+    return null;
+  }
+
+  function init(root: HTMLElement) {
+    if (root.dataset.bound) return;
+    root.dataset.bound = '1';
+
+    const story: string[] = JSON.parse(root.dataset.story ?? '[]');
+    const slider = root.querySelector<HTMLInputElement>('[data-date]')!;
+    const label = root.querySelector<HTMLElement>('[data-date-label]')!;
+    const list = root.querySelector<HTMLOListElement>('[data-story-list]')!;
+    const summary = root.querySelector<HTMLElement>('[data-summary]')!;
+    const start = new Date(2026, 7, 28); // 2026-08-28，事故當天
+
+    const lines = story.map((text) => {
+      const li = document.createElement('li');
+      li.className = 'fc-line';
+      const t = document.createElement('span');
+      t.className = 'fc-text';
+      t.textContent = text;
+      const r = document.createElement('span');
+      r.className = 'fc-reason';
+      li.append(t, r);
+      list.append(li);
+      return li;
+    });
+
+    const render = () => {
+      const asOf = new Date(start);
+      asOf.setDate(start.getDate() + Number(slider.value));
+      asOf.setHours(23, 59, 59);
+      label.textContent = `${asOf.getFullYear()}-${String(asOf.getMonth() + 1).padStart(2, '0')}-${String(asOf.getDate()).padStart(2, '0')}`;
+
+      let removed = 0;
+      story.forEach((text, i) => {
+        const reason = checkSentence(text, asOf);
+        const li = lines[i];
+        const wasBad = li.classList.contains('bad');
+        li.classList.toggle('bad', !!reason);
+        li.querySelector('.fc-reason')!.textContent = reason ? `✂ 整句刪除：${reason}` : '';
+        if (reason) removed++;
+        if (reason && !wasBad) {
+          li.classList.remove('flash');
+          void li.offsetWidth;
+          li.classList.add('flash');
+        }
+      });
+      summary.textContent =
+        removed === 0 ? '✓ 所有句子都通過檢查。' : `✂ 這一天會刪掉 ${removed} 句，剩下 ${story.length - removed} 句照常刊出。`;
+    };
+
+    slider.addEventListener('input', render);
+    render();
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('.factcheck-demo').forEach(init);
+  });
+</script>
