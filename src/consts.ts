@@ -8,6 +8,8 @@ export const SITE = {
   locale: 'zh-TW',
   author: 'Max',
   email: 'hchs200771@gmail.com',
+  // LINE 官方帳號 QR Code（public/images/ 底下），桌機版顯示給訪客用手機掃
+  lineQr: '/images/line-qr.png',
   social: {
     github: 'https://github.com/hchs200771',
     facebook: 'https://www.facebook.com/max.huang.7545',

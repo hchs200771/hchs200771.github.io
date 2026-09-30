@@ -131,6 +131,12 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
               加 LINE 聊聊
             </a>
             <a class="btn" href="/contact/">其他聯絡方式</a>
+            {SITE.lineQr && (
+              <figure class="cta-qr">
+                <img class="line-qr" src={SITE.lineQr} alt="LINE 官方帳號 QR Code" width="128" height="128" loading="lazy" />
+                <figcaption>或用手機掃描加好友</figcaption>
+              </figure>
+            )}
           </>
         ) : (
           <a class="btn primary" href="/contact/">聯絡我</a>

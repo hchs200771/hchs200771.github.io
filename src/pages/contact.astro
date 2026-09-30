@@ -18,6 +18,9 @@ import { SITE } from '../consts';
         <div class="contact-card">
           <h3>LINE 官方帳號</h3>
           <p>台灣朋友加 LINE 最方便，一對一直接問，回覆最快。</p>
+          {SITE.lineQr && (
+            <img class="line-qr" src={SITE.lineQr} alt="LINE 官方帳號 QR Code，用手機掃描加好友" width="160" height="160" loading="lazy" />
+          )}
           <a class="btn primary" href={SITE.social.line} target="_blank" rel="noopener">
             加入好友
           </a>

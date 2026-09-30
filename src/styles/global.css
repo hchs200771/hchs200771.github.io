@@ -731,3 +731,36 @@ main.container {
 .prose .demo p {
   margin-bottom: 0;
 }
+
+/* ---- LINE QR code ---- */
+.line-qr {
+  display: block;
+  width: 160px;
+  height: auto;
+  margin: 0 auto 1rem;
+  background: #fff;
+  border-radius: 10px;
+}
+
+.cta-qr {
+  flex-basis: 100%;
+  margin-top: 0.5rem;
+}
+
+.cta-qr .line-qr {
+  width: 128px;
+  margin-bottom: 0.4rem;
+}
+
+.cta-qr figcaption {
+  font-size: 0.85rem;
+  color: #8a6a3a;
+}
+
+/* 手機上沒辦法掃自己的螢幕，只留「加入好友」按鈕 */
+@media (max-width: 640px) {
+  .line-qr,
+  .cta-qr {
+    display: none;
+  }
+}
