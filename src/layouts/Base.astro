@@ -20,7 +20,7 @@ const personLd = {
   name: SITE.author,
   jobTitle: 'AI Coding Coach',
   url: Astro.site?.toString(),
-  sameAs: Object.values(SITE.social),
+  sameAs: Object.values(SITE.social).filter(Boolean),
 };
 
 const navItems = [
@@ -94,7 +94,7 @@ const currentPath = Astro.url.pathname;
           <a href={SITE.social.github} target="_blank" rel="noopener">GitHub</a>
           <a href={SITE.social.facebook} target="_blank" rel="noopener">Facebook</a>
           <a href={SITE.social.instagram} target="_blank" rel="noopener">Instagram</a>
-          <a href={SITE.social.line} target="_blank" rel="noopener">LINE</a>
+          {SITE.social.line && <a href={SITE.social.line} target="_blank" rel="noopener">LINE</a>}
         </div>
       </div>
     </footer>

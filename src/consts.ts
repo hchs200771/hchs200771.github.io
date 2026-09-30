@@ -9,10 +9,10 @@ export const SITE = {
   author: 'Max',
   email: 'hchs200771@gmail.com',
   social: {
-    github: 'https://github.com/your-github',
-    facebook: 'https://facebook.com/your-facebook',
-    instagram: 'https://instagram.com/your-instagram',
-    // LINE 官方帳號的加好友連結,申請後換成你的
-    line: 'https://lin.ee/your-line-id',
+    github: 'https://github.com/hchs200771',
+    facebook: 'https://www.facebook.com/max.huang.7545',
+    instagram: 'https://www.instagram.com/huang_guan_shiue/',
+    // LINE 官方帳號的加好友連結。留空時全站的 LINE 按鈕都不顯示，填上後自動出現
+    line: 'https://lin.ee/z7MSWTdU',
   },
 };

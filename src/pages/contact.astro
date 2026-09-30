@@ -5,7 +5,7 @@ import { SITE } from '../consts';
 
 <Base
   title="聯絡我"
-  description="想接案合作或學 AI Coding？透過 LINE、Email 或社群媒體找到我。"
+  description={`想接案合作或學 AI Coding？透過${SITE.social.line ? ' LINE、' : ' '}Email 或社群媒體找到我。`}
 >
   <div class="page-head">
     <h1>聯絡我</h1>
@@ -13,13 +13,17 @@ import { SITE } from '../consts';
   </div>
 
   <div class="contact-grid">
-    <div class="contact-card">
-      <h3>LINE 官方帳號</h3>
-      <p>台灣朋友加 LINE 最方便，一對一直接問，回覆最快。</p>
-      <a class="btn primary" href={SITE.social.line} target="_blank" rel="noopener"
-        >加入好友</a
-      >
-    </div>
+    {
+      SITE.social.line && (
+        <div class="contact-card">
+          <h3>LINE 官方帳號</h3>
+          <p>台灣朋友加 LINE 最方便，一對一直接問，回覆最快。</p>
+          <a class="btn primary" href={SITE.social.line} target="_blank" rel="noopener">
+            加入好友
+          </a>
+        </div>
+      )
+    }
 
     <div class="contact-card">
       <h3>Email</h3>

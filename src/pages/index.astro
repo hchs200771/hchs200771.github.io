@@ -122,12 +122,20 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
 
   <section class="cta-band">
     <h2>有想法想做出來？</h2>
-    <p>加 LINE 直接聊，免費評估你的需求，不用先準備什麼。</p>
+    <p>{SITE.social.line ? '加 LINE 直接聊' : '直接找我聊聊'}，免費評估你的需求，不用先準備什麼。</p>
     <div class="cta-row">
-      <a class="btn primary" href={SITE.social.line} target="_blank" rel="noopener"
-        >加 LINE 聊聊</a
-      >
-      <a class="btn" href="/contact/">其他聯絡方式</a>
+      {
+        SITE.social.line ? (
+          <>
+            <a class="btn primary" href={SITE.social.line} target="_blank" rel="noopener">
+              加 LINE 聊聊
+            </a>
+            <a class="btn" href="/contact/">其他聯絡方式</a>
+          </>
+        ) : (
+          <a class="btn primary" href="/contact/">聯絡我</a>
+        )
+      }
     </div>
   </section>
 </Base>
