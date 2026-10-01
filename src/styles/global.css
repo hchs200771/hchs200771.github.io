@@ -476,6 +476,32 @@ main.container {
   padding: 0;
 }
 
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.4rem;
+  font-size: 0.95em;
+  display: block;
+  overflow-x: auto;
+}
+
+.prose th,
+.prose td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.55rem 0.9rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background: var(--accent-soft);
+  white-space: nowrap;
+}
+
+.prose td:first-child {
+  white-space: nowrap;
+}
+
 .prose blockquote {
   border-left: 3px solid var(--accent);
   padding-left: 1rem;
