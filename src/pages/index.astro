@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import PortfolioCard from '../components/PortfolioCard.astro';
 import { SITE } from '../consts';
+import { authorRef } from '../seo';
 
 const projects = (await getCollection('portfolio'))
   .sort((a, b) => a.data.order - b.data.order)
@@ -11,9 +12,21 @@ const projects = (await getCollection('portfolio'))
 const posts = (await getCollection('blog', ({ data }) => !data.draft))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
   .slice(0, 3);
+
+const site = Astro.site!;
+const websiteLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': new URL('/#website', site).toString(),
+  name: SITE.name,
+  description: SITE.description,
+  url: site.toString(),
+  inLanguage: SITE.locale,
+  author: authorRef(site),
+};
 ---
 
-<Base>
+<Base jsonLd={websiteLd}>
   <section class="hero">
     <p class="kicker">AI CODING COACH</p>
     <h1>你有想法，<br />我用 AI 幫你快速做出來。</h1>

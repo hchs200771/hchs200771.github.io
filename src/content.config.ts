@@ -7,6 +7,10 @@ const blog = defineCollection({
     title: z.string(),
     description: z.string(),
     pubDate: z.coerce.date(),
+    // 內容有實質更新時填寫，會成為結構化資料的 dateModified 與頁面上的「更新於」
+    updatedDate: z.coerce.date().optional(),
+    // 分享預覽圖（public/ 底下的路徑，建議 1200×630），沒填就用全站預設圖
+    cover: z.string().optional(),
     tags: z.array(z.string()).default([]),
     draft: z.boolean().default(false),
   }),

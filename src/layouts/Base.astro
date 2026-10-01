@@ -1,23 +1,44 @@
 ---
 import { ClientRouter } from 'astro:transitions';
 import { SITE } from '../consts';
+import { personId } from '../seo';
 import '../styles/global.css';
 
 interface Props {
   title?: string;
   description?: string;
-  /** 額外的 JSON-LD 結構化資料（例如文章頁的 Article） */
-  jsonLd?: Record<string, unknown>;
+  /** 分享預覽圖（public/ 底下的路徑），沒給就用全站預設圖 */
+  image?: string;
+  imageAlt?: string;
+  /** 文章頁用 article，社群平台會顯示發佈時間 */
+  type?: 'website' | 'article';
+  publishedTime?: Date;
+  modifiedTime?: Date;
+  /** 額外的 JSON-LD 結構化資料（例如文章頁的 BlogPosting、麵包屑） */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-const { title, description = SITE.description, jsonLd } = Astro.props;
+const {
+  title,
+  description = SITE.description,
+  image = SITE.ogImage,
+  imageAlt = title ?? SITE.name,
+  type = 'website',
+  publishedTime,
+  modifiedTime,
+  jsonLd,
+} = Astro.props;
 const pageTitle = title ? `${title} | ${SITE.name}` : SITE.name;
 const canonical = new URL(Astro.url.pathname, Astro.site);
+const imageUrl = new URL(image, Astro.site);
+const extraLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
 const personLd = {
   '@context': 'https://schema.org',
   '@type': 'Person',
+  '@id': personId(Astro.site!),
   name: SITE.author,
+  description: SITE.description,
   jobTitle: 'AI Coding Coach',
   url: Astro.site?.toString(),
   sameAs: Object.values(SITE.social).filter(Boolean),
@@ -43,17 +64,26 @@ const currentPath = Astro.url.pathname;
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="alternate" type="application/rss+xml" title={SITE.name} href="/rss.xml" />
+    <meta name="author" content={SITE.author} />
 
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={type} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content={SITE.name} />
     <meta property="og:locale" content="zh_TW" />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:alt" content={imageAlt} />
+    {publishedTime && <meta property="article:published_time" content={publishedTime.toISOString()} />}
+    {modifiedTime && <meta property="article:modified_time" content={modifiedTime.toISOString()} />}
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageUrl} />
 
     <script type="application/ld+json" set:html={JSON.stringify(personLd)} />
-    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    {extraLd.map((ld) => <script type="application/ld+json" set:html={JSON.stringify(ld)} />)}
     <ClientRouter />
   </head>
   <body>

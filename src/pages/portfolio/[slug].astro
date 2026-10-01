@@ -1,6 +1,8 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
+import { SITE } from '../../consts';
+import { authorRef, breadcrumbLd } from '../../seo';
 
 export async function getStaticPaths() {
   const projects = await getCollection('portfolio');
@@ -13,9 +15,35 @@ export async function getStaticPaths() {
 const { project } = Astro.props;
 const { title, description, url, repo, cover, tags, client } = project.data;
 const { Content } = await render(project);
+
+const site = Astro.site!;
+const pageUrl = new URL(Astro.url.pathname, site).toString();
+// 有封面才當分享圖；SVG 社群平台大多不支援，改用預設圖
+const shareImage = cover.endsWith('.svg') ? SITE.ogImage : cover;
+
+const projectLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CreativeWork',
+  '@id': `${pageUrl}#project`,
+  name: title,
+  description,
+  url: pageUrl,
+  image: new URL(cover, site).toString(),
+  keywords: tags.join(', '),
+  creator: authorRef(site),
+  inLanguage: SITE.locale,
+  // 已上線的作品，標出實際網址與原始碼
+  ...(url && { sameAs: [url, ...(repo ? [repo] : [])] }),
+};
+
+const crumbs = breadcrumbLd(site, [
+  { name: '首頁', path: '/' },
+  { name: '作品集', path: '/portfolio/' },
+  { name: title, path: Astro.url.pathname },
+]);
 ---
 
-<Base title={title} description={description}>
+<Base title={title} description={description} image={shareImage} imageAlt={`${title} 截圖`} jsonLd={[projectLd, crumbs]}>
   <article class="prose project-detail">
     <h1>{title}</h1>
     <p class="meta">{tags.join(' / ')}</p>

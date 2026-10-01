@@ -10,6 +10,8 @@ export const SITE = {
   email: 'hchs200771@gmail.com',
   // LINE 官方帳號 QR Code（public/images/ 底下），桌機版顯示給訪客用手機掃
   lineQr: '/images/line-qr.png',
+  // 社群分享預覽圖的預設值（1200×630），文章或作品沒有自己的圖時使用
+  ogImage: '/images/og-default.png',
   social: {
     github: 'https://github.com/hchs200771',
     facebook: 'https://www.facebook.com/max.huang.7545',

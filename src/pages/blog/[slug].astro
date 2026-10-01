@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { SITE } from '../../consts';
+import { authorRef, breadcrumbLd } from '../../seo';
 
 export async function getStaticPaths() {
   const posts = await getCollection('blog', ({ data }) => !data.draft);
@@ -13,24 +14,61 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props;
 const { Content } = await render(post);
+const { title, description, pubDate, updatedDate, cover, tags } = post.data;
 
-const articleLd = {
+const site = Astro.site!;
+const url = new URL(Astro.url.pathname, site).toString();
+const image = cover ?? SITE.ogImage;
+
+const postingLd = {
   '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: post.data.title,
-  description: post.data.description,
-  datePublished: post.data.pubDate.toISOString(),
-  author: { '@type': 'Person', name: SITE.author },
-  inLanguage: 'zh-TW',
+  '@type': 'BlogPosting',
+  '@id': `${url}#article`,
+  headline: title,
+  description,
+  url,
+  mainEntityOfPage: url,
+  image: new URL(image, site).toString(),
+  datePublished: pubDate.toISOString(),
+  dateModified: (updatedDate ?? pubDate).toISOString(),
+  author: authorRef(site),
+  publisher: authorRef(site),
+  keywords: tags.join(', '),
+  inLanguage: SITE.locale,
 };
+
+const crumbs = breadcrumbLd(site, [
+  { name: '首頁', path: '/' },
+  { name: '部落格', path: '/blog/' },
+  { name: title, path: Astro.url.pathname },
+]);
+
+const formatDate = (d: Date) => d.toISOString().slice(0, 10);
 ---
 
-<Base title={post.data.title} description={post.data.description} jsonLd={articleLd}>
+<Base
+  title={title}
+  description={description}
+  image={image}
+  type="article"
+  publishedTime={pubDate}
+  modifiedTime={updatedDate}
+  jsonLd={[postingLd, crumbs]}
+>
   <article class="prose">
-    <h1>{post.data.title}</h1>
+    <h1>{title}</h1>
     <p class="meta">
-      {post.data.pubDate.toISOString().slice(0, 10)}
-      {post.data.tags.length > 0 && ` · ${post.data.tags.join(' / ')}`}
+      <a href="/about/" rel="author">{SITE.author}</a>
+      {' · '}
+      <time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>
+      {updatedDate && (
+        <>
+          {'（更新於 '}
+          <time datetime={updatedDate.toISOString()}>{formatDate(updatedDate)}</time>
+          {'）'}
+        </>
+      )}
+      {tags.length > 0 && ` · ${tags.join(' / ')}`}
     </p>
     <Content />
   </article>
