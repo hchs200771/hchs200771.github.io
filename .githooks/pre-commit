@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# commit 前自動檢查金鑰（gitleaks）。只掃描這次要 commit 的內容，並遮蔽金鑰。
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "【已擋下 commit】找不到 gitleaks，無法檢查金鑰。" >&2
+  echo "請先安裝 gitleaks（https://github.com/gitleaks/gitleaks），再重新 commit。" >&2
+  exit 1
+fi
+
+# 依版本選擇指令：新版(>=8.19) 用 gitleaks git，舊版用 gitleaks protect
+if gitleaks git --help >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --no-banner -v
+else
+  gitleaks protect --staged --redact --no-banner -v
+fi
+status=$?
+
+if [ $status -ne 0 ]; then
+  echo "" >&2
+  echo "【已擋下 commit】偵測到疑似金鑰（上方列出有問題的檔案與位置，內容已遮蔽）。" >&2
+  echo "處理方式：" >&2
+  echo "  1. 把金鑰從檔案中移除，改放到 .env（.env 已被 .gitignore 忽略），程式再從環境變數讀取。" >&2
+  echo "  2. 如果這組金鑰已經上傳過（push 過），請到該服務的網站撤銷並換新，光刪掉檔案內容是不夠的。" >&2
+  echo "  3. 確定是誤報的話，可在該行結尾加上註解 gitleaks:allow。" >&2
+  exit 1
+fi
+exit 0

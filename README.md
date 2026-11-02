@@ -41,3 +41,13 @@ All commands are run from the root of the project, from a terminal:
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+
+## commit 前的金鑰檢查
+
+這個專案在每次 commit 前，會用 [gitleaks](https://github.com/gitleaks/gitleaks) 自動檢查要提交的內容有沒有夾帶金鑰；發現的話會擋下 commit。
+
+換電腦或重新 clone 專案後，請先安裝 gitleaks，再執行一次：
+
+```bash
+git config core.hooksPath .githooks
+```

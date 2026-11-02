@@ -166,7 +166,11 @@ C. 需要我補充的資訊或人工驗證項目
 
 為什麼擋在 commit，不等到 push？因為金鑰只要進了存檔紀錄，就算之後刪掉，紀錄裡還是找得到，清起來很麻煩。**在存檔前就擋下來最乾淨。**
 
-檢查用的工具是 [gitleaks](https://github.com/gitleaks/gitleaks)，一個免費的開源工具。它認得幾百種服務的金鑰格式，而且只掃這次要存的內容，通常一秒內就跑完，每次 commit 都跑也不會覺得卡。
+### gitleaks 是什麼
+
+檢查用的工具是 [gitleaks](https://github.com/gitleaks/gitleaks)，一個免費、開源的金鑰偵測工具。它認得上百種服務的金鑰長相，全部在你自己的電腦上檢查，不會把程式碼上傳到任何地方，而且一秒內就跑完，每次 commit 都跑也不會覺得卡。
+
+它只認得「長得像金鑰的字串」，`admin1234` 這種普通密碼，或第四點那種權限問題，它都看不出來。所以它是第一道防線，不是全部。
 
 ### 設定 Prompt
 
@@ -192,8 +196,8 @@ C. 需要我補充的資訊或人工驗證項目
 
 3. 建立 pre-commit hook
    - 在專案裡建立 .githooks/pre-commit，在 commit 前只掃描這次要 commit 的內容（staged changes），並遮蔽金鑰內容。
-   - 依安裝的 gitleaks 版本選擇正確指令（新版是 gitleaks git --pre-commit --staged --redact，舊版是 gitleaks protect --staged --redact）。
-   - 發現金鑰時要擋下 commit，並用中文印出：哪個檔案有問題，以及該怎麼處理（把金鑰移到 .env、如果已經上傳過就去該服務撤銷換新）。
+   - 依安裝的 gitleaks 版本選擇正確指令：先試 gitleaks git --help，能執行就用新版指令 gitleaks git --pre-commit --staged --redact --no-banner -v，不能就用舊版指令 gitleaks protect --staged --redact --no-banner -v。一定要加 -v，才會列出是哪個檔案、哪一行有問題。
+   - 發現金鑰時要擋下 commit，並用中文印出：哪個檔案有問題，以及該怎麼處理（把金鑰移到 .env、如果已經上傳過就去該服務撤銷換新、確定是誤判可以在該行加上 gitleaks:allow 註解）。
    - 如果電腦上找不到 gitleaks，要印出中文提醒並擋下 commit，不要默默放行。
    - 確認 hook 檔有執行權限，再執行 git config core.hooksPath .githooks 啟用它。
 
@@ -206,15 +210,26 @@ C. 需要我補充的資訊或人工驗證項目
    - 如果有發現，告訴我是哪一種服務的金鑰、在哪個檔案，並提醒我：從紀錄裡刪掉不夠，要先去該服務撤銷、換新。
 
 6. 實際測試
-   - 建立一個測試檔，放一組假的金鑰（例如格式像 GitHub token 的假字串），加入暫存區後嘗試 commit，確認會被擋下。
+   - 建立一個測試檔，放一組假的金鑰：用隨機產生、格式像 GitHub token 的字串（ghp_ 加 36 個英數字），不要在字串裡寫 fake、test 這類字，否則 gitleaks 可能直接忽略。加入暫存區後嘗試 commit，確認會被擋下，而且有列出檔案名稱。
    - 測試完把測試檔從暫存區移除並刪除，確認 git status 回到測試前的狀態。
+   - 再暫時把 gitleaks 從 PATH 拿掉、直接執行 hook，確認找不到 gitleaks 時也會擋下並印出提醒。
 
-7. 在 README 加一小段說明：這個專案有 commit 前的金鑰檢查；換電腦或重新 clone 專案後，要先安裝 gitleaks，再執行一次 git config core.hooksPath .githooks。
+7. 在 README 加一小段說明：這個專案有 commit 前的金鑰檢查；這個檢查只對這台電腦上的這份專案有效，換電腦或重新 clone 專案後，要先安裝 gitleaks，再執行一次 git config core.hooksPath .githooks。
 
-最後用白話總結：裝了什麼、以後 commit 時會發生什麼事、被擋下來時我該怎麼做。
+最後用白話總結：裝了什麼、以後 commit 時會發生什麼事、被擋下來時我該怎麼做。也請提醒我：git commit --no-verify 可以跳過檢查，但那等於把安檢門拆掉，不要用它來繞過真的金鑰。
 ```
 
-裝好之後，被擋下來時不要硬闖。Git 有參數可以跳過檢查（`--no-verify`），但那等於把安檢門拆掉。先照提示把金鑰移到 `.env`，再重新 commit。
+裝好之後，如果 commit 被擋下來，照畫面上的提示把金鑰移到 `.env` 再重新 commit 就好。不要叫 AI 幫你「跳過檢查」，那等於把安檢門拆掉。
+
+### 我的實測結果
+
+這段 Prompt 我在這個部落格的專案上實際跑過：
+
+- 整個專案的歷史紀錄不到 1 秒就掃完，沒有發現外洩的金鑰
+- 故意放一組假的金鑰再 commit，馬上被擋下來，畫面會告訴你是哪個檔案、第幾行
+- 一般的修改正常通過，感覺不到多了一道檢查
+
+實測時也踩到一個坑：照預設設定，被擋下時只會說「有問題」，不會說在哪個檔案。上面的 Prompt 已經修正這點，直接複製就好。
 
 ### 進階：push 前再請 AI 看一眼（選用）
 
